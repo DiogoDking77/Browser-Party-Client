@@ -1,6 +1,5 @@
 import { io } from 'socket.io-client';
 
-// Usa a variável de ambiente ou o valor padrão para desenvolvimento
-const socket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:3000');
+const socket = io('https://browser-party-server.onrender.com');  // Substitua pela URL do seu servidor
 
 export default socket;
