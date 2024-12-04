@@ -29,25 +29,13 @@ const RoomPage = () => {
 
   useEffect(() => {
     let previousPlayers = [];
+    
+    socket.on('updateRoomData', (response) => {
+      console.log('Updated Room Data:', response.roomData);
 
-    socket.emit('getPlayersInRoom', roomName, (response) => {
-      if (response.success) {
-        setPlayers(response.players);
-
-        const initialPositions = {};
-        response.players.forEach(player => {
-          initialPositions[player.username] = 0;
-        });
-        setPlayerPositions(initialPositions);
-
-        previousPlayers = response.players;
-      }
-    });
-
-    socket.on('updatePlayers', (updatedPlayers) => {
-      if (updatedPlayers.length !== previousPlayers.length) {
-        const newPlayers = updatedPlayers.filter(p => !previousPlayers.some(prev => prev.username === p.username));
-        const removedPlayers = previousPlayers.filter(p => !updatedPlayers.some(upd => upd.username === p.username));
+      if (response.roomData.players.length !== previousPlayers.length) {
+        const newPlayers = response.roomData.players.filter(p => !previousPlayers.some(prev => prev.username === p.username));
+        const removedPlayers = previousPlayers.filter(p => !response.roomData.players.some(upd => upd.username === p.username));
 
         if (newPlayers.length > 0) {
           setPlayerPositions((prevPositions) => {
@@ -69,8 +57,8 @@ const RoomPage = () => {
           });
         }
 
-        setPlayers(updatedPlayers);
-        previousPlayers = updatedPlayers;
+        setPlayers(response.roomData.players);
+        previousPlayers = response.roomData.players;
       }
     });
 
@@ -83,9 +71,20 @@ const RoomPage = () => {
       rollDice(rollResult); // Chama a função de rolar o dado com o resultado final
     });
 
+    // Listener para antes de fechar a página
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = ''; // Mostra uma mensagem genérica no navegador
+    };
+
+    // Adiciona o listener
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       socket.off('updatePlayers');
+      socket.off('updateRoomData');
       socket.off('DiceRoll');
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [roomName]);
 
@@ -121,6 +120,30 @@ const RoomPage = () => {
       }
     });
   };
+
+  // Confirma antes de fechar a aba e chama handleLeaveRoom
+  useEffect(() => {
+    const confirmBeforeUnload = (event) => {
+      event.preventDefault();
+      const confirmationMessage = 'Você realmente deseja sair do jogo?';
+      event.returnValue = confirmationMessage;
+      return confirmationMessage;
+    };
+
+    const handleUnload = () => {
+      handleLeaveRoom();
+    };
+
+    // Adiciona os listeners para antes de fechar e antes de descarregar
+    window.addEventListener('beforeunload', confirmBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+
+    // Remove os listeners ao desmontar o componente
+    return () => {
+      window.removeEventListener('beforeunload', confirmBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, [roomName]);
 
   const handleLeaveRoom = () => {
     socket.emit('leaveRoom', roomName);
@@ -201,7 +224,7 @@ const RoomPage = () => {
               </div>
             )}
 
-            {activeTab === 'chat' && <Chat roomName={roomName} userName={userName} />}
+            {activeTab === 'chat' && <Chat roomName={roomName} userName={userName} socket={socket} />}
 
             {activeTab === 'settings' && (
               <div className="p-4 space-y-4">
