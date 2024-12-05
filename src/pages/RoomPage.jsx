@@ -26,7 +26,7 @@ const RoomPage = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { userName, roomName } = location.state;
+  const { userName, roomName, avatar } = location.state;
 
   const cellSize = 65;
 
@@ -61,7 +61,11 @@ const RoomPage = () => {
           });
         }
 
-        setPlayers(response.roomData.players);
+        //setPlayers(response.roomData.players);
+        setPlayers(response.roomData.players.map(player => ({
+          ...player,
+          avatar: player.avatar // Certifique-se de que o avatar esteja sendo enviado para todos os jogadores
+        })));
         previousPlayers = response.roomData.players;
       }
     });
@@ -255,18 +259,25 @@ const RoomPage = () => {
                   </p>
                 </div>
                 {players.map((player, index) => (
-                  <div
-                    key={index}
-                    className="p-4 bg-gray-700 shadow-md rounded-lg flex items-center justify-between hover:shadow-lg transition"
-                    style={{ borderLeft: `8px solid ${player.clientColor}` }}
-                  >
+                <div
+                  key={index}
+                  className="p-4 bg-gray-700 shadow-md rounded-lg flex items-center justify-between hover:shadow-lg transition"
+                  style={{ borderLeft: `8px solid ${player.clientColor}` }}
+                >
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={player.avatar}  // Mostra o avatar do jogador
+                      alt={player.username}
+                      className="w-12 h-12 rounded-full border-2 border-purple-400"
+                    />
                     <div>
                       <h3 className="text-lg font-extrabold text-pink-400">{player.username}</h3>
                       <p className="text-gray-300">Position: {playerPositions[player.username]}</p>
                     </div>
-                    <div className="text-white font-bold">🎮</div>
                   </div>
-                ))}
+                  <div className="text-white font-bold">🎮</div>
+                </div>
+              ))}
               </div>
             )}
 
