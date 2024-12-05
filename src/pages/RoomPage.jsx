@@ -20,6 +20,9 @@ const RoomPage = () => {
   const [diceRolling, setDiceRolling] = useState(false); // Estado para controlar se o dado está rolando
   const [currentDiceFace, setCurrentDiceFace] = useState(null); // Face atual do dado
   const [rollingPlayer, setRollingPlayer] = useState(null); // Jogador que está rolando o dado
+  const [gameStarted, setGameStarted] = useState(false); // Novo estado para indicar se o jogo começou
+  const [isAdmin, setIsAdmin] = useState(false); // Novo estado para verificar se o cliente é admin
+  const [countdown, setCountdown] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,6 +35,7 @@ const RoomPage = () => {
     
     socket.on('updateRoomData', (response) => {
       console.log('Updated Room Data:', response.roomData);
+      setIsAdmin(response.roomData.adminPlayer.username === userName);
 
       if (response.roomData.players.length !== previousPlayers.length) {
         const newPlayers = response.roomData.players.filter(p => !previousPlayers.some(prev => prev.username === p.username));
@@ -62,6 +66,18 @@ const RoomPage = () => {
       }
     });
 
+    socket.on('startGame', () => {
+      setGameStarted(true)
+      // Inicia o countdown de 3 até "Let\'s Party!"
+      setCountdown('3');
+      setTimeout(() => setCountdown('2'), 1000);
+      setTimeout(() => setCountdown('1'), 2000);
+      setTimeout(() => setCountdown('Let\'s Party!'), 3000);
+      setTimeout(() => {
+        setCountdown(null); // Remove o countdown após a mensagem final
+      }, 4500); // Deixe "Let\'s Party!" visível por 1,5 segundos
+    });     
+
     // Listener para o evento de dado rolado
     socket.on('DiceRoll', ({ username, rollResult }) => {
       console.log(`${username} rolled a ${rollResult}`);
@@ -84,9 +100,14 @@ const RoomPage = () => {
       socket.off('updatePlayers');
       socket.off('updateRoomData');
       socket.off('DiceRoll');
+      socket.off('startGame');
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [roomName]);
+
+  const startGame = () => {
+    socket.emit('adminStartGame', roomName );
+  };
 
   // Função para rolar o dado e mostrar uma animação
   const rollDice = (finalResult) => {
@@ -154,27 +175,52 @@ const RoomPage = () => {
     <div className="flex flex-col h-screen bg-gradient-to-r from-gray-900 via-gray-800 to-black text-white">
       <div className="flex flex-1">
         <div className="w-3/4 p-4 bg-gray-800/90 rounded-lg shadow-2xl flex items-center justify-center relative overflow-hidden">
-          <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-
-          {diceRolling && rollingPlayer && (
-            <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-white text-2xl mb-4">{rollingPlayer} is rolling the dice...</p>
-                <div className="dice-animation">
-                  <img src={currentDiceFace} alt="dice face" className="w-24 h-24 mx-auto" />
-                </div>
-              </div>
+          {/* Exibição condicional baseada no estado do jogo */}
+          {!gameStarted ? (
+            <div className="text-center">
+              <p className="text-white text-xl mb-4">
+                Players in room: <span className="font-bold">{players.length}</span>
+              </p>
+              {isAdmin ? (
+                <button
+                  className="bg-green-500 hover:bg-green-400 text-white p-4 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
+                  onClick={startGame}
+                >
+                  Start Game
+                </button>
+              ) : (
+                <p className="text-gray-300">Waiting for the host to start the game...</p>
+              )}
             </div>
-          )}
+          ) : countdown ? (
+            <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
+              <h1 className="text-white text-6xl font-bold">{countdown}</h1>
+            </div>
+          ) : (
+            <>
+              <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
 
-          <div className="p-4 z-10">
-            <button
-              className="bg-green-500 hover:bg-green-400 text-white w-full p-2 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
-              onClick={rollTheDice}
-            >
-              🎲 Roll the Dice!
-            </button>
-          </div>
+              {diceRolling && rollingPlayer && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-white text-2xl mb-4">{rollingPlayer} is rolling the dice...</p>
+                    <div className="dice-animation">
+                      <img src={currentDiceFace} alt="dice face" className="w-24 h-24 mx-auto" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 z-10">
+                <button
+                  className="bg-green-500 hover:bg-green-400 text-white w-full p-2 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
+                  onClick={rollTheDice}
+                >
+                  🎲 Roll the Dice!
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="w-1/4 bg-gray-800/90 rounded-lg shadow-lg flex flex-col overflow-hidden">
