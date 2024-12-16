@@ -7,6 +7,8 @@ export default {
     "./src/pages/RoomPage.jsx",
     "./src/components/Chat.jsx",
     "./src/components/Board/BasicBoard.jsx",
+    "./src/components/Countdown.jsx",
+    "./src/components/ShuffleOrder.jsx",
   ],
   theme: {
     extend: {},
