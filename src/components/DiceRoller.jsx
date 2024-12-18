@@ -7,7 +7,7 @@ import dice5 from '../assets/dice5.png';
 import dice6 from '../assets/dice6.png';
 import socket from '../socket';
 
-const DiceRoller = ({ roomName, userName }) => {
+const DiceRoller = ({ roomName, userName, isMyTurn }) => {
   const [diceRolling, setDiceRolling] = useState(false);
   const [currentDiceFace, setCurrentDiceFace] = useState(null);
   const [rollingPlayer, setRollingPlayer] = useState(null);
@@ -55,16 +55,19 @@ const DiceRoller = ({ roomName, userName }) => {
         console.log(`You rolled a ${response.rollResult}`);
       }
     });
+    socket.emit('updatePlayerTurn', roomName)
   };
 
   return (
     <>
+    {isMyTurn ? (
       <button
         className="bg-green-500 hover:bg-green-400 text-white w-1/2 p-2 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
         onClick={rollTheDice}
       >
         🎲 Roll the Dice!
       </button>
+      ) : null}
       {diceRolling && rollingPlayer && (
         <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
           <div className="text-center">

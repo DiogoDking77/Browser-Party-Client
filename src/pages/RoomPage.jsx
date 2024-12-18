@@ -12,10 +12,12 @@ const RoomPage = () => {
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [round, setRound] = useState(1);
   const [players, setPlayers] = useState([]);
+  const [roomData, setRoomData] = useState([]);
   const [playerTurnOrder, setPlayerTurnOrder] = useState([]);
   const [playerPositions, setPlayerPositions] = useState({});
   const [gameStarted, setGameStarted] = useState(false); // Novo estado para indicar se o jogo começou
   const [isAdmin, setIsAdmin] = useState(false); // Novo estado para verificar se o cliente é admin
+  const [isMyTurn, setIsMyTurn] = useState(false); // Novo estado para verificar se o cliente é admin
   const [countdown, setCountdown] = useState(null);
   const [orderShuffle, setOrderShuffle] = useState(null);
   const [currentPlayerTurnId, setCurrentPlayerTurnId] = useState(null);
@@ -57,7 +59,9 @@ const RoomPage = () => {
     
     socket.on('updateRoomData', (response) => {
       console.log('Updated Room Data:', response.roomData);
+      setRoomData(response.roomData);
       setIsAdmin(response.roomData.adminPlayer.username === userName);
+      setIsMyTurn(response.roomData.currentPlayerTurn && response.roomData.currentPlayerTurn.username === userName);
 
       if (response.roomData.players.length !== previousPlayers.length) {
         const newPlayers = response.roomData.players.filter(p => !previousPlayers.some(prev => prev.username === p.username));
@@ -127,53 +131,6 @@ const RoomPage = () => {
     setOrderShuffle(false);
   };
 
-  const randomShuffle = (players) => {
-    const newPlayers = [...players];
-    const randomIndex = Math.floor(Math.random() * newPlayers.length);
-    const randomMove = Math.random() > 0.5 ? 'swap' : 'rotate';
-
-    if (randomMove === 'swap') {
-      // Trocar a posição de dois cards aleatoriamente
-      const secondRandomIndex = (randomIndex + Math.floor(Math.random() * (newPlayers.length - 1)) + 1) % newPlayers.length;
-      [newPlayers[randomIndex], newPlayers[secondRandomIndex]] = [newPlayers[secondRandomIndex], newPlayers[randomIndex]];
-    } else {
-      // Move um card para outra posição e ajusta os demais
-      const movingCard = newPlayers.splice(randomIndex, 1)[0];
-      const targetIndex = (randomIndex + Math.floor(Math.random() * newPlayers.length)) % newPlayers.length;
-      newPlayers.splice(targetIndex, 0, movingCard);
-    }
-    console.log('random move')
-
-    return newPlayers;
-  };
-
-  // Função para realizar a animação de movimentos aleatórios
-  const performRandomShuffle = (steps, callback) => {
-    if (steps === 0) {
-      callback();
-      return;
-    }
-
-    setTimeout(() => {
-      setShufflingPlayers(prevPlayers => randomShuffle(prevPlayers));
-      performRandomShuffle(steps - 1, callback);
-    }, 250); // Velocidade da animação
-  };
-
-  // Função para realizar o shuffle predefinido com base em playerTurnOrder
-  const performPredefinedShuffle = (playerTurnOrder) => {
-    const finalOrder = [...shufflingPlayersRef.current];
-    
-    for (let i = 3; i >= 0; i--) {
-      const playerToMove = finalOrder.find(player => player.id === playerTurnOrder[i]);
-      finalOrder.splice(finalOrder.indexOf(playerToMove), 1); // Remove o player
-      finalOrder.splice(i, 0, playerToMove); // Insere o player na nova posição
-      console.log('move')
-    }
-  
-    setShufflingPlayers(finalOrder);
-  };  
-
   const startGame = () => {
     socket.emit('adminStartGame', roomName );
   };
@@ -242,7 +199,7 @@ const RoomPage = () => {
           ) : (
             <>
               <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-              <DiceRoller roomName={roomName} userName={userName} />
+              <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
             </>
           )}
         </div>
@@ -272,11 +229,27 @@ const RoomPage = () => {
           <div className="flex-1 overflow-y-auto p-4">
             {activeTab === 'leaderboard' && (
               <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-purple-600 to-blue-500 shadow rounded-lg text-center">
-                  <h3 className="text-xl font-extrabold text-white">🎉 {roomName} 🎉</h3>
-                  <p className="text-md text-gray-200">
-                    Round: <span className="font-bold">{round}</span>
-                  </p>
+                <div
+                  className={`p-4 bg-gradient-to-r from-purple-600 to-blue-500 shadow rounded-lg text-center border-4 ${
+                    roomData.isOngoing ? `border-${roomData.currentPlayerTurn.clientColor}-500` : 'border-gray-500'
+                  }`}
+                >
+                  <h3 className="text-xl font-extrabold text-white">
+                    🎉 {roomData.roomId} 🎉
+                  </h3>
+
+                  {roomData.isOngoing ? (
+                    <>
+                      <p className="text-md text-gray-200">
+                        Round: <span className="font-bold">{roomData.currentRound}</span>
+                      </p>
+                      <p className="text-md text-gray-200">
+                        It's <span className="font-bold">{roomData.currentPlayerTurn.username}</span>'s turn to play!
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-md text-gray-200">Game not started</p>
+                  )}
                 </div>
                 {players.map((player, index) => (
                 <div
