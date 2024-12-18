@@ -1,0 +1,45 @@
+
+  /* Para animações suaves de transição */
+.transition-transform {
+    transition: transform 0.5s ease, top 0.5s ease, left 0.5s ease;
+  }
+  
+  /* Para escalar o card quando for o jogador atual */
+  .card-active {
+    transform: scale(1.2);
+    z-index: 10;
+  }
+
+  
+  @keyframes swap {
+    0% {
+      transform: translateX(0) translateY(0);
+    }
+    50% {
+      transform: translateX(50px) translateY(-20px); /* Ajuste os valores conforme necessário */
+    }
+    100% {
+      transform: translateX(0) translateY(0);
+    }
+  }
+  
+  .card-swap {
+    animation: swap 0.5s ease-in-out;
+  }
+
+  
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    50% {
+      transform: rotate(15deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+  
+  .card-rotate {
+    animation: rotate 0.5s ease-in-out;
+  }

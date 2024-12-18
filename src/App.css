@@ -37,4 +37,37 @@
   }
 }
 
+.led-border {
+  position: relative;
+  z-index: 0;
+}
+
+.led-border::before {
+  content: '';
+  position: absolute;
+  top: -8px; /* Ajuste com base na largura da borda */
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 12px; /* Igual ao arredondamento do componente */
+  background: linear-gradient(
+    45deg,
+    rgba(255, 0, 0, 0.8),
+    rgba(0, 255, 0, 0.8),
+    rgba(0, 0, 255, 0.8)
+  );
+  z-index: -1;
+  filter: blur(10px);
+  opacity: 0.7;
+  animation: led-glow 2s infinite alternate;
+}
+
+@keyframes led-glow {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
 

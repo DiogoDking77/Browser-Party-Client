@@ -1,41 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import BasicBoard from '../components/Board/BasicBoard';
 import Chat from '../components/Chat';
+import DiceRoller from '../components/DiceRoller';
+import ShuffleOrder from '../components/ShuffleOrder';
+import Countdown from '../components/Countdown';
 
-// Importe as imagens das faces do dado
-import dice1 from '../assets/dice1.png';
-import dice2 from '../assets/dice2.png';
-import dice3 from '../assets/dice3.png';
-import dice4 from '../assets/dice4.png';
-import dice5 from '../assets/dice5.png';
-import dice6 from '../assets/dice6.png';
 
 const RoomPage = () => {
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [round, setRound] = useState(1);
   const [players, setPlayers] = useState([]);
+  const [roomData, setRoomData] = useState([]);
+  const [playerTurnOrder, setPlayerTurnOrder] = useState([]);
   const [playerPositions, setPlayerPositions] = useState({});
-  const [diceRolling, setDiceRolling] = useState(false); // Estado para controlar se o dado está rolando
-  const [currentDiceFace, setCurrentDiceFace] = useState(null); // Face atual do dado
-  const [rollingPlayer, setRollingPlayer] = useState(null); // Jogador que está rolando o dado
   const [gameStarted, setGameStarted] = useState(false); // Novo estado para indicar se o jogo começou
   const [isAdmin, setIsAdmin] = useState(false); // Novo estado para verificar se o cliente é admin
+  const [isMyTurn, setIsMyTurn] = useState(false); // Novo estado para verificar se o cliente é admin
   const [countdown, setCountdown] = useState(null);
+  const [orderShuffle, setOrderShuffle] = useState(null);
+  const [currentPlayerTurnId, setCurrentPlayerTurnId] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
   const { userName, roomName, avatar } = location.state;
 
+  const [shufflingPlayers, setShufflingPlayers] = useState([]); // Estado para armazenar os cards durante a animação
+  const shufflingPlayersRef = useRef(shufflingPlayers);
+
   const cellSize = 65;
 
+  const colorMap = {
+    red: 'border-red-500',
+    blue: 'border-blue-500',
+    green: 'border-green-500',
+    yellow: 'border-yellow-500',
+    // Adicione mais cores conforme necessário
+  };
+
+  const getGlowColor = (colorKey) => {
+    const glowColors = {
+      red: 'rgba(255, 0, 0, 0.6)',
+      blue: 'rgba(0, 0, 255, 0.6)',
+      green: 'rgba(0, 255, 0, 0.6)',
+      yellow: 'rgba(255, 255, 0, 0.6)',
+      // Adicione mais cores conforme necessário
+    };
+  
+    return glowColors[colorKey] || 'rgba(255, 255, 255, 0.4)'; // Cor padrão de brilho
+  };
+  
+
   useEffect(() => {
+    
+    shufflingPlayersRef.current = shufflingPlayers;
     let previousPlayers = [];
     
     socket.on('updateRoomData', (response) => {
       console.log('Updated Room Data:', response.roomData);
+      setRoomData(response.roomData);
       setIsAdmin(response.roomData.adminPlayer.username === userName);
+      setIsMyTurn(response.roomData.currentPlayerTurn && response.roomData.currentPlayerTurn.username === userName);
 
       if (response.roomData.players.length !== previousPlayers.length) {
         const newPlayers = response.roomData.players.filter(p => !previousPlayers.some(prev => prev.username === p.username));
@@ -70,25 +96,11 @@ const RoomPage = () => {
       }
     });
 
-    socket.on('startGame', () => {
-      setGameStarted(true)
-      // Inicia o countdown de 3 até "Let\'s Party!"
+    socket.on('startGame', ({ currentPlayerTurn, playerTurnOrder }) => {
+      setPlayerTurnOrder(playerTurnOrder);
+      setGameStarted(true);
       setCountdown('3');
-      setTimeout(() => setCountdown('2'), 1000);
-      setTimeout(() => setCountdown('1'), 2000);
-      setTimeout(() => setCountdown('Let\'s Party!'), 3000);
-      setTimeout(() => {
-        setCountdown(null); // Remove o countdown após a mensagem final
-      }, 4500); // Deixe "Let\'s Party!" visível por 1,5 segundos
-    });     
-
-    // Listener para o evento de dado rolado
-    socket.on('DiceRoll', ({ username, rollResult }) => {
-      console.log(`${username} rolled a ${rollResult}`);
-      
-      // Mostrar a animação de rolar o dado
-      setRollingPlayer(username);
-      rollDice(rollResult); // Chama a função de rolar o dado com o resultado final
+      console.log(playerTurnOrder);
     });
 
     // Listener para antes de fechar a página
@@ -103,47 +115,24 @@ const RoomPage = () => {
     return () => {
       socket.off('updatePlayers');
       socket.off('updateRoomData');
-      socket.off('DiceRoll');
       socket.off('startGame');
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [roomName]);
+  }, [roomName, players]);
+
+  const handleCountdownEnd = (newCountdown) => {
+    setCountdown(newCountdown);
+    if (newCountdown === null) {
+      setOrderShuffle(true); // Avança para o shuffle quando o countdown termina
+    }
+  };  
+
+  const handleShuffleEnd = () => {
+    setOrderShuffle(false);
+  };
 
   const startGame = () => {
     socket.emit('adminStartGame', roomName );
-  };
-
-  // Função para rolar o dado e mostrar uma animação
-  const rollDice = (finalResult) => {
-    setDiceRolling(true);
-    setCurrentDiceFace(dice1); // Inicia mostrando uma face qualquer do dado
-
-    const diceFaces = [dice1, dice2, dice3, dice4, dice5, dice6];
-
-    // Simula o dado rolando por 1,5 segundos
-    let rollCount = 0;
-    const interval = setInterval(() => {
-      const randomFace = diceFaces[Math.floor(Math.random() * 6)]; // Mostra uma face aleatória do dado
-      setCurrentDiceFace(randomFace);
-      rollCount++;
-      
-      if (rollCount > 10) { // Após algumas iterações, mostrar o número real
-        clearInterval(interval);
-        setCurrentDiceFace(diceFaces[finalResult - 1]); // Exibe o número sorteado
-        setTimeout(() => {
-          setDiceRolling(false); // Para a animação
-          setRollingPlayer(null); // Limpa o jogador que rolou o dado
-        }, 1500); // Mostra o resultado final por mais 1,5 segundos
-      }
-    }, 150); // Velocidade da rotação do dado
-  };
-
-  const rollTheDice = () => {
-    socket.emit('rollTheDice', { roomName, username: userName }, (response) => {
-      if (response.success) {
-        console.log(`You rolled a ${response.rollResult}`);
-      }
-    });
   };
 
   // Confirma antes de fechar a aba e chama handleLeaveRoom
@@ -171,6 +160,7 @@ const RoomPage = () => {
   }, [roomName]);
 
   const handleLeaveRoom = () => {
+    console.log(shufflingPlayers)
     socket.emit('leaveRoom', roomName);
     navigate(-1);
   };
@@ -197,32 +187,19 @@ const RoomPage = () => {
               )}
             </div>
           ) : countdown ? (
-            <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
-              <h1 className="text-white text-6xl font-bold">{countdown}</h1>
-            </div>
+            <Countdown countdown={countdown} onCountdownEnd={handleCountdownEnd} />
+          ) : orderShuffle ? (
+            <ShuffleOrder
+              players={players}
+              playerTurnOrder={playerTurnOrder}
+              onShuffleEnd={handleShuffleEnd}
+              colorMap={colorMap}
+              getGlowColor={getGlowColor}
+            />
           ) : (
             <>
               <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-
-              {diceRolling && rollingPlayer && (
-                <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-white text-2xl mb-4">{rollingPlayer} is rolling the dice...</p>
-                    <div className="dice-animation">
-                      <img src={currentDiceFace} alt="dice face" className="w-24 h-24 mx-auto" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 z-10">
-                <button
-                  className="bg-green-500 hover:bg-green-400 text-white w-full p-2 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
-                  onClick={rollTheDice}
-                >
-                  🎲 Roll the Dice!
-                </button>
-              </div>
+              <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
             </>
           )}
         </div>
@@ -252,11 +229,27 @@ const RoomPage = () => {
           <div className="flex-1 overflow-y-auto p-4">
             {activeTab === 'leaderboard' && (
               <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-purple-600 to-blue-500 shadow rounded-lg text-center">
-                  <h3 className="text-xl font-extrabold text-white">🎉 {roomName} 🎉</h3>
-                  <p className="text-md text-gray-200">
-                    Round: <span className="font-bold">{round}</span>
-                  </p>
+                <div
+                  className={`p-4 bg-gradient-to-r from-purple-600 to-blue-500 shadow rounded-lg text-center border-4 ${
+                    roomData.isOngoing ? `border-${roomData.currentPlayerTurn.clientColor}-500` : 'border-gray-500'
+                  }`}
+                >
+                  <h3 className="text-xl font-extrabold text-white">
+                    🎉 {roomData.roomId} 🎉
+                  </h3>
+
+                  {roomData.isOngoing ? (
+                    <>
+                      <p className="text-md text-gray-200">
+                        Round: <span className="font-bold">{roomData.currentRound}</span>
+                      </p>
+                      <p className="text-md text-gray-200">
+                        It's <span className="font-bold">{roomData.currentPlayerTurn.username}</span>'s turn to play!
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-md text-gray-200">Game not started</p>
+                  )}
                 </div>
                 {players.map((player, index) => (
                 <div
