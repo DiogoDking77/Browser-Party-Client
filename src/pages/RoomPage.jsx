@@ -8,6 +8,7 @@ import ShuffleOrder from '../components/ShuffleOrder';
 import Countdown from '../components/Countdown';
 
 
+
 const RoomPage = () => {
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [round, setRound] = useState(1);
@@ -21,6 +22,7 @@ const RoomPage = () => {
   const [countdown, setCountdown] = useState(null);
   const [orderShuffle, setOrderShuffle] = useState(null);
   const [currentPlayerTurnId, setCurrentPlayerTurnId] = useState(null);
+  const [isMiniGameEvent, setIsMiniGameEvent] = useState(false)
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,6 +58,10 @@ const RoomPage = () => {
     
     shufflingPlayersRef.current = shufflingPlayers;
     let previousPlayers = [];
+
+    socket.on('message', ({ username, message, isSystem}) => {
+      console.log(message)
+    });
     
     socket.on('updateRoomData', (response) => {
       console.log('Updated Room Data:', response.roomData);
@@ -103,6 +109,10 @@ const RoomPage = () => {
       console.log(playerTurnOrder);
     });
 
+    socket.on('miniGameEvent', ({ isMinigameEvent}) => {
+      setIsMiniGameEvent(isMinigameEvent)
+    });
+
     // Listener para antes de fechar a página
     const handleBeforeUnload = (event) => {
       event.preventDefault();
@@ -116,6 +126,8 @@ const RoomPage = () => {
       socket.off('updatePlayers');
       socket.off('updateRoomData');
       socket.off('startGame');
+      socket.off('message');
+      socket.off('miniGameEvent');
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [roomName, players]);
@@ -198,8 +210,18 @@ const RoomPage = () => {
             />
           ) : (
             <>
-              <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-              <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
+              {!isMiniGameEvent ? (
+                <>
+                <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
+                <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
+                </>
+              ) : (
+                <>
+                {/*Componente do Minigame Color Match*/}
+                <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
+                <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
+                </>
+              )}
             </>
           )}
         </div>
