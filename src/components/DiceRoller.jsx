@@ -7,7 +7,7 @@ import dice5 from '../assets/dice5.png';
 import dice6 from '../assets/dice6.png';
 import socket from '../socket';
 
-const DiceRoller = ({ roomName, userName, isMyTurn }) => {
+const DiceRoller = ({ roomName, userName, isMyTurn, onMiniGameTriggered }) => {
   const [diceRolling, setDiceRolling] = useState(false);
   const [currentDiceFace, setCurrentDiceFace] = useState(null);
   const [rollingPlayer, setRollingPlayer] = useState(null);
@@ -25,6 +25,22 @@ const DiceRoller = ({ roomName, userName, isMyTurn }) => {
 
     return () => {
       socket.off('DiceRoll', handleDiceRoll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleMiniGame = ({ miniGameType }) => {
+      console.log(`Mini-game triggered: ${miniGameType}`);
+      // Envia a informação ao RoomPage, se necessário.
+      if (miniGameType === 'PenaltyShootOut') {
+        // Aqui você pode chamar um callback ou enviar um evento customizado.
+      }
+    };
+  
+    socket.on('miniGameEvent', handleMiniGame);
+  
+    return () => {
+      socket.off('miniGameEvent', handleMiniGame);
     };
   }, []);
 
@@ -53,6 +69,15 @@ const DiceRoller = ({ roomName, userName, isMyTurn }) => {
     socket.emit('rollTheDice', { roomName, username: userName }, (response) => {
       if (response.success) {
         console.log(`You rolled a ${response.rollResult}`);
+
+
+        if (response.miniGameEvent){
+          console.log(`Mini-game triggered: ${response.miniGameType}`);
+        
+          if (onMiniGameTriggered) {
+            onMiniGameTriggered(response.miniGameType);
+          }
+        }
       }
     });
     socket.emit('updatePlayerTurn', roomName)
