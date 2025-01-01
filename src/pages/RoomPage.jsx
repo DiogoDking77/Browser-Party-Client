@@ -6,6 +6,8 @@ import Chat from '../components/Chat';
 import DiceRoller from '../components/DiceRoller';
 import ShuffleOrder from '../components/ShuffleOrder';
 import Countdown from '../components/Countdown';
+import PenaltyShootOut from '../components/Minigames/PenaltyShootOut';  // Ajuste o caminho conforme a estrutura do seu projeto
+
 
 
 
@@ -23,6 +25,7 @@ const RoomPage = () => {
   const [orderShuffle, setOrderShuffle] = useState(null);
   const [currentPlayerTurnId, setCurrentPlayerTurnId] = useState(null);
   const [isMiniGameEvent, setIsMiniGameEvent] = useState(false)
+  const [miniGame, setMiniGame] = useState(null); 
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -109,9 +112,11 @@ const RoomPage = () => {
       console.log(playerTurnOrder);
     });
 
+    /*
     socket.on('miniGameEvent', ({ isMinigameEvent}) => {
       setIsMiniGameEvent(isMinigameEvent)
     });
+    */
 
     // Listener para antes de fechar a página
     const handleBeforeUnload = (event) => {
@@ -121,6 +126,21 @@ const RoomPage = () => {
 
     // Adiciona o listener
     window.addEventListener('beforeunload', handleBeforeUnload);
+
+
+    
+    socket.on('miniGameEvent', ({ miniGameType }) => {
+      console.log(`Mini-game triggered: ${miniGameType}`);
+  
+      // Evitar reexibir o mini-jogo se já estiver ativo
+      if (miniGameType === 'PenaltyShootOut' && !isMiniGameEvent) {
+        setIsMiniGameEvent(true);
+        setMiniGame('PenaltyShootOut');
+      } else if (miniGameType !== 'PenaltyShootOut' && isMiniGameEvent) {
+        setIsMiniGameEvent(false);
+        setMiniGame(null); // Resetar o mini-jogo
+      }
+    });
 
     return () => {
       socket.off('updatePlayers');
@@ -177,53 +197,62 @@ const RoomPage = () => {
     navigate(-1);
   };
 
+  const handleMiniGameEnd = () => {
+    console.log('Ending mini-game');
+    setIsMiniGameEvent(false);  // Oculta o mini-jogo após o tempo
+    setMiniGame(null);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-r from-gray-900 via-gray-800 to-black text-white">
       <div className="flex flex-1">
         <div className="w-3/4 p-4 bg-gray-800/90 rounded-lg shadow-2xl flex items-center justify-center relative overflow-hidden">
           {/* Exibição condicional baseada no estado do jogo */}
           {!gameStarted ? (
-            <div className="text-center">
-              <p className="text-white text-xl mb-4">
-                Players in room: <span className="font-bold">{players.length}</span>
-              </p>
-              {isAdmin ? (
-                <button
-                  className="bg-green-500 hover:bg-green-400 text-white p-4 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
-                  onClick={startGame}
-                >
-                  Start Game
-                </button>
-              ) : (
-                <p className="text-gray-300">Waiting for the host to start the game...</p>
-              )}
-            </div>
-          ) : countdown ? (
-            <Countdown countdown={countdown} onCountdownEnd={handleCountdownEnd} />
-          ) : orderShuffle ? (
-            <ShuffleOrder
-              players={players}
-              playerTurnOrder={playerTurnOrder}
-              onShuffleEnd={handleShuffleEnd}
-              colorMap={colorMap}
-              getGlowColor={getGlowColor}
+          <div className="text-center">
+            {/* Estado inicial antes do jogo */}
+            <p className="text-white text-xl mb-4">
+              Players in room: <span className="font-bold">{players.length}</span>
+            </p>
+            {isAdmin ? (
+              <button
+                className="bg-green-500 hover:bg-green-400 text-white p-4 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
+                onClick={startGame}
+              >
+                Start Game
+              </button>
+            ) : (
+              <p className="text-gray-300">Waiting for the host to start the game...</p>
+            )}
+          </div>
+        ) : countdown ? (
+          <Countdown countdown={countdown} onCountdownEnd={handleCountdownEnd} />
+        ) : orderShuffle ? (
+          <ShuffleOrder
+            players={players}
+            playerTurnOrder={playerTurnOrder}
+            onShuffleEnd={handleShuffleEnd}
+            colorMap={colorMap}
+            getGlowColor={getGlowColor}
+          />
+        ) : isMiniGameEvent && miniGame === 'PenaltyShootOut' ? (
+          <PenaltyShootOut onMiniGameEnd={handleMiniGameEnd} />
+        ) : (
+          <>
+            <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
+            <DiceRoller
+              roomName={roomName}
+              userName={userName}
+              isMyTurn={isMyTurn}
+              onMiniGameTriggered={(miniGameType) => {
+                if (miniGameType === 'PenaltyShootOut') {
+                  setIsMiniGameEvent(true);
+                  setMiniGame('PenaltyShootOut');
+                }
+              }}
             />
-          ) : (
-            <>
-              {!isMiniGameEvent ? (
-                <>
-                <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-                <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
-                </>
-              ) : (
-                <>
-                {/*Componente do Minigame Color Match*/}
-                <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-                <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
-                </>
-              )}
-            </>
-          )}
+          </>
+        )}
         </div>
 
         <div className="w-1/4 bg-gray-800/90 rounded-lg shadow-lg flex flex-col overflow-hidden">
