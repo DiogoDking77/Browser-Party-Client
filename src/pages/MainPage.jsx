@@ -12,7 +12,7 @@ const avatarList = [firefox, mouse, opera, pirate, anonymous];
 const MainPage = () => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const [avatarIndex, setAvatarIndex] = useState(0);
+  const [avatarIndex, setAvatarIndex] = useState(() => Math.floor(Math.random() * 5));
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
