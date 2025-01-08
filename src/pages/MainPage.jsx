@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import socket from '../socket'; // Importa a instância do socket
 import firefox from '../assets/avatars/fox_ref.png';
-import mouse from '../assets/avatars/mouse.png';
-import opera from '../assets/avatars/opera.jpg';
+import mouse from '../assets/avatars/rat.jpg';
+import opera from '../assets/avatars/phantom.jpg';
 import pirate from '../assets/avatars/pirate.png';
 import anonymous from '../assets/avatars/anonymous.png';
+import cookie from '../assets/avatars/cookie.jpg';
+import googles from '../assets/avatars/googles.jpg';
+import bug from '../assets/avatars/bug.jpg';
 
-const avatarList = [firefox, mouse, opera, pirate, anonymous];
+const avatarList = [firefox, mouse, opera, pirate, anonymous, cookie, googles, bug];
 
 const MainPage = () => {
   const [name, setName] = useState('');

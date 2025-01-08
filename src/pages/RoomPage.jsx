@@ -8,9 +8,6 @@ import ShuffleOrder from '../components/ShuffleOrder';
 import Countdown from '../components/Countdown';
 import PenaltyShootOut from '../components/Minigames/PenaltyShootOut';  // Ajuste o caminho conforme a estrutura do seu projeto
 
-
-
-
 const RoomPage = () => {
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [round, setRound] = useState(1);
@@ -134,11 +131,31 @@ const RoomPage = () => {
   
       // Evitar reexibir o mini-jogo se já estiver ativo
       if (miniGameType === 'PenaltyShootOut' && !isMiniGameEvent) {
+        /* Minigame event still in developmentt
         setIsMiniGameEvent(true);
         setMiniGame('PenaltyShootOut');
+        */
+        console.log("Minigame Time")
+
+        setIsMiniGameEvent(false);
+        setMiniGame(null);
       } else if (miniGameType !== 'PenaltyShootOut' && isMiniGameEvent) {
         setIsMiniGameEvent(false);
         setMiniGame(null); // Resetar o mini-jogo
+      }
+    });
+
+    socket.on('miniGameEventTime', ({ miniGameType }) => {
+      console.log(`Mini-game triggered: ${miniGameType}`);
+      console.log(`Mini-game triggered: ${miniGameType}`);
+      if (miniGameType === 'PenaltyShootOut') {
+        setGameStarted(true);
+        setCountdown(null);
+        setOrderShuffle(false);
+        setIsMiniGameEvent(true);
+        setMiniGame('PenaltyShootOut'); // Ativando o mini-jogo
+
+        // O mini-jogo permanece ativo até o final
       }
     });
 
@@ -148,6 +165,7 @@ const RoomPage = () => {
       socket.off('startGame');
       socket.off('message');
       socket.off('miniGameEvent');
+      socket.off('miniGameEventTime');
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [roomName, players]);
@@ -165,6 +183,12 @@ const RoomPage = () => {
 
   const startGame = () => {
     socket.emit('adminStartGame', roomName );
+  };
+
+  const startRandomMiniGame = () => {
+    socket.emit('triggerMiniGame', { roomName, miniGameType: 'PenaltyShootOut' });
+
+    console.log('x')
   };
 
   // Confirma antes de fechar a aba e chama handleLeaveRoom
@@ -215,12 +239,20 @@ const RoomPage = () => {
               Players in room: <span className="font-bold">{players.length}</span>
             </p>
             {isAdmin ? (
+              <>
               <button
                 className="bg-green-500 hover:bg-green-400 text-white p-4 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
                 onClick={startGame}
               >
                 Start Game
               </button>
+              <button
+                className="bg-yellow-500 hover:bg-yellow-400 text-white p-4 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-yellow mt-4"
+                onClick={startRandomMiniGame}
+              >
+                Play Random Mini-Game
+              </button>
+              </>
             ) : (
               <p className="text-gray-300">Waiting for the host to start the game...</p>
             )}
