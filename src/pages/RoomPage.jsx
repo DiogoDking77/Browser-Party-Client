@@ -29,8 +29,6 @@ const RoomPage = () => {
   const [shufflingPlayers, setShufflingPlayers] = useState([]); // Estado para armazenar os cards durante a animação
   const shufflingPlayersRef = useRef(shufflingPlayers);
 
-  const cellSize = 65;
-
   const colorMap = {
     red: 'border-red-500',
     blue: 'border-blue-500',
@@ -168,7 +166,7 @@ const RoomPage = () => {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-r from-gray-900 via-gray-800 to-black text-white">
       <div className="flex flex-1">
-        <div className="w-3/4 p-4 bg-gray-800/90 rounded-lg shadow-2xl flex items-center justify-center relative overflow-hidden">
+        <div className="w-3/4 bg-gray-800/90 shadow-2xl flex items-center justify-center relative overflow-hidden">
           {/* Exibição condicional baseada no estado do jogo */}
           {!gameStarted ? (
             <div className="text-center">
@@ -198,8 +196,8 @@ const RoomPage = () => {
             />
           ) : (
             <>
-              <BasicBoard cellSize={cellSize} playerPositions={playerPositions} players={players} />
-              <DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
+              <BasicBoard playerPositions={playerPositions} players={players} roomName={roomName} userName={userName} isMyTurn={isMyTurn} />
+              {/*<DiceRoller roomName={roomName} userName={userName} isMyTurn={isMyTurn} />*/}
             </>
           )}
         </div>

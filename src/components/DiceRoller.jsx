@@ -59,26 +59,64 @@ const DiceRoller = ({ roomName, userName, isMyTurn }) => {
   };
 
   return (
-    <>
-    {isMyTurn ? (
-      <button
-        className="bg-green-500 hover:bg-green-400 text-white w-1/2 p-2 rounded-lg shadow-lg transition transform hover:scale-110 hover:shadow-neon-green"
-        onClick={rollTheDice}
-      >
-        🎲 Roll the Dice!
-      </button>
-      ) : null}
+    <div className="w-full h-full relative">
+      {isMyTurn ? (
+        <button
+          className="
+            w-full h-full 
+            bg-green-500
+            text-white font-bold
+            rounded-xl
+            shadow-[0_6px_0_#15803d]
+            hover:shadow-[0_4px_0_#15803d]
+            hover:translate-y-[2px]
+            active:shadow-[0_0px_0_#15803d]
+            active:translate-y-[6px]
+            transition-all duration-150
+            flex items-center justify-center gap-2
+          "
+          onClick={rollTheDice}
+        >
+          <span className="text-2xl">🎲</span>
+          <span className="text-sm font-semibold">Roll!</span>
+        </button>
+      ) : (
+        <div 
+          className="
+            w-full h-full 
+            bg-gray-400
+            rounded-xl
+            shadow-inner
+            flex items-center justify-center gap-2
+            opacity-50 cursor-not-allowed
+            text-gray-100
+          "
+        >
+          <span className="text-2xl">🎲</span>
+          <span className="text-sm font-semibold">Wait...</span>
+        </div>
+      )}
       {diceRolling && rollingPlayer && (
-        <div className="absolute inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
+        <div 
+          className="fixed inset-0 flex items-center justify-center"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 9999
+          }}
+        >
           <div className="text-center">
-            <p className="text-white text-2xl mb-4">{rollingPlayer} is rolling the dice...</p>
+            <p className="text-white text-2xl mb-4">{rollingPlayer} está rolando o dado...</p>
             <div className="dice-animation">
-              <img src={currentDiceFace} alt="dice face" className="w-24 h-24 mx-auto" />
+              <img 
+                src={currentDiceFace} 
+                alt="face do dado" 
+                className="w-24 h-24 mx-auto animate-bounce"
+              />
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
