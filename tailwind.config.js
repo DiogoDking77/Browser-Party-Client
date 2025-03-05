@@ -8,7 +8,9 @@ export default {
     "./src/components/Chat.jsx",
     "./src/components/Board/BasicBoard.jsx",
     "./src/components/Countdown.jsx",
+    "./src/components/DiceRoller.jsx",
     "./src/components/ShuffleOrder.jsx",
+    "./src/components/InfoScreen.jsx",
   ],
   theme: {
     extend: {},

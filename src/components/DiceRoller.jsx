@@ -7,26 +7,12 @@ import dice5 from '../assets/dice5.png';
 import dice6 from '../assets/dice6.png';
 import socket from '../socket';
 
-const DiceRoller = ({ roomName, userName, isMyTurn }) => {
+const DiceRoller = ({ roomName, userName, isMyTurn, onDiceRoll }) => {
   const [diceRolling, setDiceRolling] = useState(false);
   const [currentDiceFace, setCurrentDiceFace] = useState(null);
   const [rollingPlayer, setRollingPlayer] = useState(null);
 
   const diceFaces = [dice1, dice2, dice3, dice4, dice5, dice6];
-
-  useEffect(() => {
-    const handleDiceRoll = ({ username, rollResult }) => {
-      console.log(`${username} rolled a ${rollResult}`);
-      setRollingPlayer(username);
-      rollDice(rollResult);
-    };
-
-    socket.on('DiceRoll', handleDiceRoll);
-
-    return () => {
-      socket.off('DiceRoll', handleDiceRoll);
-    };
-  }, []);
 
   const rollDice = (finalResult) => {
     setDiceRolling(true);
@@ -55,7 +41,7 @@ const DiceRoller = ({ roomName, userName, isMyTurn }) => {
         console.log(`You rolled a ${response.rollResult}`);
       }
     });
-    socket.emit('updatePlayerTurn', roomName)
+    socket.emit('updatePlayerTurn', roomName);
   };
 
   return (
